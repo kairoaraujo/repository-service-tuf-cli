@@ -381,10 +381,15 @@ class TUFManagement:
         root_metadata = Metadata(Root(roles=roles))
         for role, keys in add_key_args.items():
             for key in keys:
+                if role == Roles.ROOT.value:
+                    root_metadata.signed.unrecognized_fields["x-archivista-url"] = "http://127.0.0.1:8082"
+                    root_metadata.signed.unrecognized_fields["x-archivista-metadata"] = "http://127.0.0.1:8080"
+                    root_metadata.signed.unrecognized_fields["x-archivista-policy-pubkey"] = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAf29oPP8UghByG852uBdOxrJKKn7MM5hTbP9esgOZ/k0=\n-----END PUBLIC KEY-----\n"
+
                 root_metadata.signed.add_key(key, role)
 
         self._verify_correct_keys_usage(root_metadata.signed)
-
+        breakpoint()
         metadata_type = root_metadata.signed.type
         self._bump_expiry(root_metadata, metadata_type)
         self._sign(root_metadata, metadata_type)
@@ -421,6 +426,8 @@ class TUFManagement:
 
             add_key_args[role_name] = []
             roles[role_name] = Role([], threshold)
+            if role_name == Roles.ROOT.value:
+                roles[role_name].unrecognized_fields
             for signer in signers:
                 key = Key.from_securesystemslib_key(signer.key_dict)
                 self._setup_key_name(key, role_name)

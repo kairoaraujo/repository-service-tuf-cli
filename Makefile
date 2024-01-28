@@ -26,8 +26,8 @@ docs:
 run-dev: export API_VERSION = dev
 run-dev: export WORKER_VERSION = dev
 run-dev:
-	docker pull ghcr.io/repository-service-tuf/repository-service-tuf-api:dev
-	docker pull ghcr.io/repository-service-tuf/repository-service-tuf-worker:dev
+	docker pull --platform linux/amd64 ghcr.io/repository-service-tuf/repository-service-tuf-api:dev
+	docker pull --platform linux/amd64 ghcr.io/repository-service-tuf/repository-service-tuf-worker:dev
 	docker compose -f docker-compose.yml up --remove-orphans
 
 
