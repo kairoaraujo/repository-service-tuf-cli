@@ -165,7 +165,10 @@ class TestDownloadArtifacInteractionWithoutConfig:
             obj=test_context,
             catch_exceptions=False,
         )
-        assert fake_build_metadata_dir.calls == [pretend.call(METADATA_URL)]
+        assert fake_build_metadata_dir.calls == [
+            pretend.call(METADATA_URL),
+            pretend.call(METADATA_URL),
+        ]
         expected_root_path = trusted_root_path
         msg = f"Using trusted root in {expected_root_path}"
         assert msg in test_result.output
