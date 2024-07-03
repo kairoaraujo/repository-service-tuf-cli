@@ -32,7 +32,7 @@ from repository_service_tuf.cli.admin.helpers import (
     _configure_root_keys_prompt,
     _expiry_prompt,
     _print_root,
-    _root_threshold_prompt,
+    _threshold_prompt,
 )
 from repository_service_tuf.cli.admin.metadata import metadata
 from repository_service_tuf.helpers.api_client import (
@@ -173,7 +173,7 @@ def update(
     if Confirm.ask(
         f"{threshold_str} Do you want to change the threshold?", default=False
     ):
-        root_role.threshold = _root_threshold_prompt()
+        root_role.threshold = _threshold_prompt("root")()
 
     _configure_root_keys_prompt(root)
 
