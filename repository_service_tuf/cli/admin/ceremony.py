@@ -32,7 +32,7 @@ from repository_service_tuf.cli.admin.helpers import (
     _expiry_prompt,
     _online_settings_prompt,
     _print_root,
-    _root_threshold_prompt,
+    _threshold_prompt,
 )
 from repository_service_tuf.helpers.api_client import (
     URL,
@@ -104,7 +104,7 @@ def ceremony(context: Any, out: Optional[click.File], dry_run: bool) -> None:
     # Configure Root Keys
     console.print(Markdown("## Root Keys"))
     root_role = root.get_delegated_role(Root.type)
-    root_role.threshold = _root_threshold_prompt()
+    root_role.threshold = _threshold_prompt("root")
     _configure_root_keys_prompt(root)
 
     ###########################################################################

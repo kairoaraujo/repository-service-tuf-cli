@@ -16,6 +16,7 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_private_key,
     load_pem_public_key,
 )
+from rich import print_json
 from rich.prompt import Confirm, IntPrompt, InvalidResponse, Prompt
 from rich.table import Table
 from securesystemslib.formats import encode_canonical
@@ -30,6 +31,8 @@ from securesystemslib.signer import (
     SSlibKey,
 )
 from tuf.api.metadata import (
+    DelegatedRole,
+    Delegations,
     Metadata,
     Root,
     RootVerificationResult,
@@ -235,7 +238,7 @@ def _load_key_from_sigstore_prompt() -> Optional[Key]:
 
 
 def _load_key_prompt(
-    root: Root, signer_type: Optional[str] = None
+    keys: Dict[str, Key], signer_type: Optional[ROOT_SIGNERS] = None
 ) -> Optional[Key]:
     """Prompt and return Key, or None on error or if key is already loaded."""
     try:
@@ -254,14 +257,26 @@ def _load_key_prompt(
         return None
 
     # Disallow re-adding a key even if it is for a different role.
-    if key.keyid in root.keys:
+    if key.keyid in keys:
         console.print("\nKey already in use.", style="bold red")
         return None
 
     return key
 
 
-def _key_name_prompt(root: Root, name: Optional[str] = None) -> str:
+def _delegated_target_role_name_prompt() -> str:
+    """Prompt for delegated target role name until success."""
+    while True:
+        name = Prompt.ask("Please enter delegated target role name")
+        if not name:
+            console.print("Role name cannot be empty.")
+            continue
+        break
+
+    return name
+
+
+def _key_name_prompt(keys: Dict[str, Key], name: Optional[str] = None) -> str:
     """Prompt for key name until success."""
     while True:
         name = Prompt.ask("Please enter key name", default=name)
@@ -270,8 +285,7 @@ def _key_name_prompt(root: Root, name: Optional[str] = None) -> str:
             continue
 
         if name in [
-            k.unrecognized_fields.get(KEY_NAME_FIELD)
-            for k in root.keys.values()
+            k.unrecognized_fields.get(KEY_NAME_FIELD) for k in keys.values()
         ]:
             console.print("\nKey name already in use.", style="bold red")
             continue
@@ -320,8 +334,8 @@ def _online_settings_prompt() -> _OnlineSettings:
     )
 
 
-def _root_threshold_prompt() -> int:
-    return _MoreThan1Prompt.ask("Please enter root threshold")
+def _threshold_prompt(role: str) -> int:
+    return _MoreThan1Prompt.ask(f"Please enter {role} threshold")
 
 
 def _select(options: List[str]) -> str:
@@ -376,12 +390,12 @@ def _configure_root_keys_prompt(root: Root) -> None:
                 break
 
             case "add":
-                new_key = _load_key_prompt(root)
+                new_key = _load_key_prompt(root.keys)
                 if not new_key:
                     continue
 
                 name = _key_name_prompt(
-                    root, new_key.unrecognized_fields.get(KEY_NAME_FIELD)
+                    root.keys, new_key.unrecognized_fields.get(KEY_NAME_FIELD)
                 )
                 new_key.unrecognized_fields[KEY_NAME_FIELD] = name
                 root.add_key(new_key, Root.type)
@@ -393,6 +407,122 @@ def _configure_root_keys_prompt(root: Root) -> None:
                 name = key.unrecognized_fields.get(KEY_NAME_FIELD, key.keyid)
                 root.revoke_key(key.keyid, Root.type)
                 console.print(f"Removed root key '{name}'")
+
+
+def _path_name_prompt() -> str:
+    """Prompt for path name until success."""
+    while True:
+        name = Prompt.ask("Please enter path name")
+        if not name:
+            console.print("Path name cannot be empty.")
+            continue
+
+        break
+
+    return name
+
+
+def _configure_targets_paths(delegated_role: DelegatedRole) -> DelegatedRole:
+    """Prompt dialog to add or remove root key in passed root, until user exit.
+
+    - Print if and how many root keys are missing to meet the threshold
+    - Print current root keys
+    - Prompt for user choice to add or remove key, or to skip (exit)
+        - "continue" choice is only available, if threshold is met
+        - "remove" choice is only available, if keys exist
+        - "add" choice is only shown, if "remove" or "continue" is available,
+          otherwise, we branch right into "add" dialog
+
+    """
+    while True:
+        for path in delegated_role.paths:
+            console.print(f"- '{path}'")
+
+        if bool(delegated_role.paths) is False:
+            delegated_role.paths.append(_path_name_prompt())
+            continue
+
+        # build the action choices
+        console.print("\nSelect an action:")
+        action_options = ["continue", "add", "remove"]
+        action = _select(action_options)
+        # apply choice
+        match action:
+            case "continue":
+                break
+
+            case "add":
+                delegated_role.paths.append(_path_name_prompt())
+
+            case "remove":
+                console.print("\nSelect a key to remove:")
+                path = _select(delegated_role.paths)
+                delegated_role.paths.delete(path)
+
+    return delegated_role
+
+
+def _configure_targets_delegations(
+    delegated_role: DelegatedRole, delegations: Delegations
+) -> Delegations:
+    """Prompt dialog to add or remove root key in passed root, until user exit.
+
+    - Print if and how many root keys are missing to meet the threshold
+    - Print current root keys
+    - Prompt for user choice to add or remove key, or to skip (exit)
+        - "continue" choice is only available, if threshold is met
+        - "remove" choice is only available, if keys exist
+        - "add" choice is only shown, if "remove" or "continue" is available,
+          otherwise, we branch right into "add" dialog
+
+    """
+    while True:
+        for key in delegations.keys.values():
+            name = key.unrecognized_fields.get(KEY_NAME_FIELD, key.keyid)
+            console.print(f"- '{name}'")
+
+        missing = max(0, delegated_role.threshold - len(delegations.keys))
+        _print_missing_key_info(delegated_role.threshold, missing)
+
+        # build the action choices
+        action_options = ["add", "remove"]
+        if not missing:
+            action_options.insert(0, "continue")
+
+        # prompt for user choice
+        if not delegations.keys:
+            action = "add"
+
+        else:
+            action = _select(action_options)
+
+        # apply choice
+        match action:
+            case "continue":
+                break
+
+            case "add":
+                new_key = _load_key_prompt(delegations.keys)
+                if not new_key:
+                    continue
+
+                name = _key_name_prompt(delegations.keys, new_key.unrecognized_fields.get(KEY_NAME_FIELD))
+                new_key.unrecognized_fields[KEY_NAME_FIELD] = name
+                delegations.keys[new_key.keyid] = new_key
+                delegated_role.keyids.append(new_key.keyid)
+                console.print(f"Added root key '{name}'")
+
+            case "remove":
+                console.print("\nSelect a key to remove:")
+                key = _select_key(delegations.keys)
+                name = key.unrecognized_fields.get(KEY_NAME_FIELD, key.keyid)
+                delegations.keys.pop(key.keyid)
+                delegated_role.keyids.delete(new_key.keyid)
+                console.print(f"Removed root key '{name}'")
+
+    delegations.roles[delegated_role.name] = delegated_role
+
+    return delegations
 
 
 def _configure_online_key_prompt(root: Root) -> None:
@@ -410,10 +540,12 @@ def _configure_online_key_prompt(root: Root) -> None:
             return
 
     while True:
-        if new_key := _load_key_prompt(root, signer_type=ROOT_SIGNERS.KEY_PEM):
+        if new_key := _load_key_prompt(
+            root.keys, signer_type=ROOT_SIGNERS.KEY_PEM
+        ):
             break
 
-    name = _key_name_prompt(root)
+    name = _key_name_prompt(root.keys)
     new_key.unrecognized_fields[KEY_NAME_FIELD] = name
 
     uri = f"fn:{new_key.keyid}"
@@ -533,6 +665,44 @@ def _print_root(root: Root):
     )
 
     console.print(root_table)
+
+
+def _print_targets(targets: Targets):
+    """Pretty print root metadata."""
+
+    targets_table = Table("Version", "Artifacts")
+    artifact_table = Table("Path", "Info", show_lines=True)
+    from rich.json import JSON
+
+    for path, info in targets.signed.targets.items():
+        artifact_table.add_row(
+            path, JSON.from_data(info.to_dict()), style="bold"
+        )
+    targets_table.add_row(str(targets.signed.version), artifact_table)
+    console.print(targets_table)
+
+
+def _print_delegation(delegations: Delegations):
+    """Pretty print target delegation metadata."""
+    key_table = Table("ID", "Name", "Signing Scheme")
+    for key in delegations.keys.values():
+        name = key.unrecognized_fields.get(KEY_NAME_FIELD)
+        key_table.add_row(key.keyid, name, key.scheme)
+    delegations_table = Table(
+        "Role Name", "Infos", "Keys", title="Delegation Metadata"
+    )
+    for delegation in delegations.roles.values():
+        delegations_table.add_row(
+            delegation.name,
+            (
+                f"Expiration: {delegation.unrecognized_fields["x-rstuf-expire-policy"]}\n"
+                f"Threshold: {delegation.threshold}\n"
+                f"Paths: {', '.join(delegation.paths)}"
+            ),
+            key_table,
+        )
+
+    console.print(delegations_table)
 
 
 def _filter_root_verification_results(
