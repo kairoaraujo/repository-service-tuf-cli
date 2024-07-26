@@ -1,0 +1,17 @@
+{
+  "delegations": {
+    "keys": {},
+    "roles": [
+      {
+        "name": "attestation",
+        "terminating": true,
+        "keyids": [],
+        "threshold": 1,
+        "x-rstuf-expire-policy": 365,
+        "paths": [
+          "attestation/*"
+        ]
+      }
+    ]
+  }
+}

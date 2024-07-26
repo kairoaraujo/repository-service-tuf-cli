@@ -1,0 +1,38 @@
+{
+    "signatures": [
+     {
+      "keyid": "0d9d3d4bad91c455bc03921daa95774576b86625ac45570d0cac025b08e65043",
+      "sig": "82a8f0eeffe7e7bb699b0f82af80530fbefcede8d05b90414ebb99fa9c1f04de359db75c894861285b54e734afbc8c1aafabf520cf44294b16d704ae5169c6f189cf296290b278b31721ad76b294bf5b3107e613cba835921af1f98805aff5e2574b87a6396cd25221eeece44d450d24d6605674d6f48ba4e7a606e9bf83ff1533fbff74ee3d35e1c393ef2890b463c77807839516e07236fd65e5c1a53a5f59fe0dc5de6c1552b3f74fb269e2a2991c1513ef7583f30b955c44aa791cc85e887c072c0500f042ce6b5867b43875703397d0b80f0d15b3de6718b8ed01ae8f88a5e76f95798f9fe5d5901e9e84c95c9ea67b2e9bf4bb2350315504204122dbb9"
+     }
+    ],
+    "signed": {
+     "_type": "targets",
+     "expires": "2024-08-15T14:10:52Z",
+     "spec_version": "1.0.31",
+     "targets": {
+      "file1.tar.gz": {
+       "custom": {
+        "key": "value"
+       },
+       "hashes": {
+        "blake2b-256": "716f6e863f744b9ac22c97ec7b76ea5f5908bc5b2f67c61510bfc4751384ea7a"
+       },
+       "length": 11342
+      },
+      "file2.tar.gz": {
+       "hashes": {
+        "blake2b-256": "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9"
+       },
+       "length": 630
+      },
+      "file3.tar.gz": {
+       "hashes": {
+        "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99",
+        "sha512": "052b49a21e03606b28942db69aa597530fe52d47ee3d748ba65afcd14b857738e36bc1714c4f4adde46c3e683548552fe5c96722e0e0da3acd9050c2524902d8"
+       },
+       "length": 39
+      }
+     },
+     "version": 2
+    }
+   }

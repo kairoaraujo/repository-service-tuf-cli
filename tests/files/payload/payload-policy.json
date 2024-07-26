@@ -1,0 +1,20 @@
+{
+  "artifacts": [
+    {
+      "info": {
+        "custom": {
+          "dsse-public-key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwhX6rioiL/cX5Ys32InF\nU52H8tL14QeX0tacZdb+AwcH6nIh97h3RSHvGD7Xy6uaMRmGldAnSVYwJHqoJ5j2\nynVzU/RFpr+6n8Ps0QFg5GmlEqZboFjLbS0bsRQcXXnqJNsVLEPT3ULvu1rFRbWz\nAMFjNtNNk5W/u0GEzXn3D03jIdhD8IKAdrTRf0VMD9TRCXLdMmEU2vkf1NVUnOTb\n/dRX5QA8TtBylVnouZknbavQ0J/pPlHLfxUgsKzodwDlJmbPG9BWwXqQCmP0DgOG\nNIZ1X281MOBaGbkNVEuntNjCSaQxQjfALVVU5NAfal2cwMINtqaoc7Wa+TWvpFEI\nWwIDAQAB\n-----END PUBLIC KEY-----\n",
+         "gitoids": {
+              "1": "ae2dcc989ea9c109a36e8eba5c4bc16d8fafcfe8e1a614164670d50aedacd647",
+              "2": "ae2dcc989ea9c109a36e8eba5c4bc16d8fafcfe8e1a614164670d50aedacd648"
+          }
+        },
+        "hashes": {
+          "blake2b-256": "716f6e863f744b9ac22c97ec7b76ea5f5908bc5b2f67c61510bfc4751384ea7a"
+        },
+        "length": 11342
+      },
+      "path": "6ba7b810-9dad-11d1-80b4-00c04fd430c8/policy/policy-name"
+    }
+  ]
+}
