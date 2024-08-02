@@ -18,20 +18,7 @@ from tuf.api.metadata import DelegatedRole, Delegations, Metadata, Targets
 # https://rich.readthedocs.io/en/stable/console.html#capturing-output
 from repository_service_tuf.cli import console
 from repository_service_tuf.cli.admin import metadata
-from repository_service_tuf.cli.admin.helpers import (
-    SignPayload,
-    _add_signature_prompt,
-    _configure_targets_delegations,
-    _configure_targets_paths,
-    _delegated_target_role_name_prompt,
-    _expiry_prompt,
-    _filter_root_verification_results,
-    _print_delegation,
-    _print_keys_for_signing,
-    _print_root,
-    _select_key,
-    _threshold_prompt,
-)
+from repository_service_tuf.cli.admin.helpers import _configure_delegations
 from repository_service_tuf.helpers.api_client import (
     URL,
     Methods,
@@ -113,30 +100,6 @@ def new(
             "Either '--api-sever' admin option/'SERVER' in RSTUF config or "
             "'--dry-run' needed"
         )
-    ###########################################################################
-    # Create new Targets metadata empty object
-    new_targets = Metadata(Targets())
-    expire_days, expire_date = _expiry_prompt("targets")
-    new_targets.signed.expires = expire_date
-    name = _delegated_target_role_name_prompt()
-    threshold = _threshold_prompt("targets")
-
-    # ###########################################################################
-    # Load the Public Keys used to sign the metadata
-    delegated_role = DelegatedRole(
-        name=name,
-        threshold=threshold,
-        keyids=[],
-        terminating=True,
-        paths=[],
-        unrecognized_fields={"x-rstuf-expire-policy": expire_days},
-    )
-    paths = _configure_targets_paths(delegated_role)
-    delegations = Delegations(keys={}, roles={})
-    _configure_targets_delegations(delegated_role, delegations)
-    ###########################################################################
-    # Review metadata
-    _print_delegation(delegations)
 
     # ###########################################################################
     # # Sign metadata
@@ -154,6 +117,7 @@ def new(
         json.dump({"delegations": delegations.to_dict()}, out, indent=2)  # type: ignore
         console.print(f"Saved result to '{out.name}'")
 
+    delegations = _configure_delegations()
     # if settings.get("SERVER") and not dry_run:
     #     console.print(f"\nSending signature to {settings.SERVER}")
     #     task_id = send_payload(

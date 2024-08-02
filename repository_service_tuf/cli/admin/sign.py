@@ -140,12 +140,13 @@ def sign(
     role = _select(roles_options)
     role_md = Metadata.from_dict(pending_roles[role])
 
-    prev_root = Metadata[Root].from_dict(pending_roles["trusted_root"])
-    targets = Metadata[Targets].from_dict(pending_roles["trusted_targets"])
-
     if role_md.signed.type == Root.type:
         version = role_md.signed.version
-        if version > 1:
+        prev_root = None
+        if pending_roles.get("trusted_root"):
+            prev_root = Metadata[Root].from_dict(pending_roles["trusted_root"])
+
+        if version > 1 and not prev_root:
             raise click.ClickException(
                 f"Previous root v{version-1} needed "
                 f"to sign root v{version}."
@@ -153,10 +154,10 @@ def sign(
 
         ###########################################################################
         # Verify signatures
-        root_result = root_md.signed.get_root_verification_result(
+        root_result = role_md.signed.get_root_verification_result(
             prev_root.signed if prev_root is not None else None,
-            root_md.signed_bytes,
-            root_md.signatures,
+            role_md.signed_bytes,
+            role_md.signatures,
         )
         if root_result.verified:
             raise click.ClickException("Metadata already fully signed.")
@@ -164,7 +165,7 @@ def sign(
         ###########################################################################
         # Review metadata
         console.print(Markdown("## Review"))
-        _print_root(root_md.signed)
+        _print_root(role_md.signed)
 
         ###########################################################################
         # Sign metadata
@@ -172,9 +173,10 @@ def sign(
         results = _filter_root_verification_results(root_result)
         keys = _print_keys_for_signing(results)
         key = _select_key(keys)
-        signature = _add_signature_prompt(root_md, key)
+        signature = _add_signature_prompt(role_md, key)
 
     else:
+        targets = Metadata[Targets].from_dict(pending_roles["trusted_targets"])
         # sign Targets metadata
         console.print(Markdown("## Review"))
         _print_targets(role_md)
