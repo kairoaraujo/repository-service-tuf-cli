@@ -17,7 +17,7 @@ from tuf.api.metadata import DelegatedRole, Delegations, Metadata, Targets
 # https://rich.readthedocs.io/en/stable/console.html#console-api
 # https://rich.readthedocs.io/en/stable/console.html#capturing-output
 from repository_service_tuf.cli import console
-from repository_service_tuf.cli.admin import metadata
+from repository_service_tuf.cli.admin.metadata import metadata
 from repository_service_tuf.cli.admin.helpers import _configure_delegations
 from repository_service_tuf.helpers.api_client import (
     URL,
