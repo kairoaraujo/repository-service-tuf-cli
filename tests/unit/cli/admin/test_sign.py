@@ -8,7 +8,7 @@ import click
 import pretend
 import pytest
 
-from repository_service_tuf.cli.admin import sign
+from repository_service_tuf.cli.metadata.admin import sign
 from repository_service_tuf.helpers.api_client import URL, Methods
 from tests.conftest import _HELPERS, _PAYLOADS, _PEMS, _ROOTS, invoke_command
 
