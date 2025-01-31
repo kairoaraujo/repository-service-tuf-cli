@@ -41,7 +41,6 @@ from repository_service_tuf.helpers.api_client import (
 
 def _parse_pending_data(pending_roles_resp: Dict[str, Any]) -> Dict[str, Any]:
     data = pending_roles_resp.get("data", {})
-
     pending_roles: Dict[str, Dict[str, Any]] = data.get("metadata", {})
     if len(pending_roles) == 0:
         raise click.ClickException("No metadata available for signing")
@@ -126,7 +125,7 @@ def sign(
 
     # Make sure user understands that result will be send to the API and if the
     # the user wants something else should use '--dry-run'.
-    if not settings.get("SERVER") and not dry_run:
+    if not settings.get("SERVER") and not dry_run and out is None:
         raise click.ClickException(
             "Either '--api-server' admin option/'SERVER' in RSTUF config or "
             "'--dry-run' needed"
