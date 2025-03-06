@@ -1,0 +1,49 @@
+{
+ "signatures": [],
+ "signed": {
+  "_type": "root",
+  "consistent_snapshot": true,
+  "expires": "2026-03-06T12:43:30Z",
+  "keys": {
+   "e6a9903c727e1a813153ba5e506b8cb5661bedbd1acbdbbec34c8cf01837d927": {
+    "keytype": "sigstore-oidc",
+    "keyval": {
+     "identity": "https://github.com/kairoaraujo/repository-service-tuf-cli/.github/workflows/online-sign.yml@refs/heads/main",
+     "issuer": "https://token.actions.githubusercontent.com"
+    },
+    "scheme": "Fulcio",
+    "x-tuf-on-ci-online-uri": "sigstore:"
+   }
+  },
+  "roles": {
+   "root": {
+    "keyids": [],
+    "threshold": 2
+   },
+   "snapshot": {
+    "keyids": [
+     "e6a9903c727e1a813153ba5e506b8cb5661bedbd1acbdbbec34c8cf01837d927"
+    ],
+    "threshold": 1,
+    "x-tuf-on-ci-expiry-period": 365,
+    "x-tuf-on-ci-signing-period": 60
+   },
+   "targets": {
+    "keyids": [],
+    "threshold": 2
+   },
+   "timestamp": {
+    "keyids": [
+     "e6a9903c727e1a813153ba5e506b8cb5661bedbd1acbdbbec34c8cf01837d927"
+    ],
+    "threshold": 1,
+    "x-tuf-on-ci-expiry-period": 2,
+    "x-tuf-on-ci-signing-period": 1
+   }
+  },
+  "spec_version": "1.0.31",
+  "version": 1,
+  "x-tuf-on-ci-expiry-period": 365,
+  "x-tuf-on-ci-signing-period": 60
+ }
+}
