@@ -16,8 +16,7 @@ from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.ngclient import Updater, UpdaterConfig
 
 from repository_service_tuf.cli import click, console
-from repository_service_tuf.cli.artifact import artifact
-
+from repository_service_tuf.cli.artifact import artifact, _fetcher
 
 def _decode_trusted_root(root) -> str:
     root_encoded = bytes(root, "utf-8")
@@ -69,11 +68,13 @@ def _perform_tuf_ngclient_download_artifact(
     config: UpdaterConfig,
 ) -> None:
     try:
+        fetcher = _fetcher.RSTUFFetcher()
         updater = Updater(
             metadata_dir=metadata_dir,
             metadata_base_url=metadata_url,
             target_base_url=artifacts_url,
             target_dir=download_dir,
+            fetcher=fetcher,
             config=config,
         )
         updater.refresh()
@@ -86,12 +87,19 @@ def _perform_tuf_ngclient_download_artifact(
 
         path = updater.find_cached_target(info)  # pragma: no cover
         if path:  # pragma: no cover
-            console.print(f"Artifact is available in {path}")
+            console.print(
+                f"{'Artifact' if not fetcher.oci_registry else 'Container index/manifest'} "
+                f"is available in {path}"
+            )
 
         path = updater.download_target(info)  # pragma: no cover
-        console.print(  # pragma: no cover
-            f"Artifact downloaded and available in {path}"
-        )
+        if not fetcher.oci_registry:
+            console.print(  # pragma: no cover
+                f"Artifact downloaded and available in {path}"
+            )
+            console.print(f"Successfully completed artifact download: {artifact_name}")
+        else:            
+            console.print(f"Container Image {artifact_name} is trusted ✅")
 
     except (OSError, RepositoryError, DownloadError) as e:
         raise click.FileError(
@@ -255,5 +263,3 @@ def download(
         artifact_name,
         root,
     )
-
-    console.print(f"Successfully completed artifact download: {artifact_name}")
