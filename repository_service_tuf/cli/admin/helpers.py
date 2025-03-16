@@ -685,13 +685,9 @@ def _add_signature_prompt(metadata: Metadata, key: Key) -> Signature:
                 )
             # Using HSM or Key PEM file
             else:
-                if key.keytype == "ecdsa":
-                    signer_type = _select(
-                        [ROOT_SIGNERS.HSM.value, ROOT_SIGNERS.KEY_PEM.value]
-                    )
-                else:
-                    signer_type = ROOT_SIGNERS.KEY_PEM
-
+                signer_type = _select(
+                    [ROOT_SIGNERS.HSM.value, ROOT_SIGNERS.KEY_PEM.value]
+                )
                 if signer_type == ROOT_SIGNERS.KEY_PEM.value:
                     signer = _load_signer_from_file_prompt(key)
                 else:
