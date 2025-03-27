@@ -5,10 +5,10 @@
 
 import base64
 from urllib.parse import urlparse
-
+import os
 from click import Context
 from dynaconf.loaders.yaml_loader import write  # type: ignore
-
+from tuf.api.metadata import Metadata, Root
 from repository_service_tuf.cli import click, console
 from repository_service_tuf.cli.artifact import artifact
 
@@ -177,14 +177,32 @@ def add(
         console.print(f"Repository {name} already configured")
         success_msg = f"Successfully updated repository {name}"
 
-    encoded_root = b""
-    if root:
+    # If root is empty or None, return empty bytes
+    if not root:
+        encoded_root =  b""
+    
+    # Check if root is a local file path
+    if os.path.isfile(root):
+        try:
+            # Read the file and encode its contents
+            root_md: Metadata[Root] = Metadata.from_file(root)
+            root_md.verify_delegate(Root.type, root_md)
+            with open(root, 'rb') as file:
+                encoded_root =  base64.b64encode(file.read())
+        except IOError as e:
+            raise click.ClickException(f"Error reading file: {e}")
+    
+    else:
+        # Check if root is a URL
+        parsed_url = urlparse(root)
+        
+        # Validate URL scheme
+        if not parsed_url.scheme:
+            raise click.ClickException(
+                "Please use http://"
+                " or https:// for artifact URL"
+            )
         encoded_root = base64.b64encode(bytes(root, "utf-8"))
-
-    if urlparse(artifacts_url).scheme == "":
-        raise click.ClickException(
-            "Please use http:// or https:// for artifact url"
-        )
 
     repo_data = {
         "artifact_base_url": artifacts_url,
@@ -303,4 +321,5 @@ def delete(context: Context, repository: str) -> None:
 
     if context.obj.get("config"):
         write_config(context.obj.get("config"), rstuf_config)
+        repo["trusted_root"] = "From file"
         console.print(f"Succesfully deleted repository {repo}")
