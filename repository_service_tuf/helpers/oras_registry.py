@@ -39,57 +39,41 @@ def _parse_container_url(url):
     Parse container reference URLs into their components.
 
     Args:
-        url (str): Container reference URL (e.g., 'postgres:17',
+        url (str): Container reference URL (e.g., 'postgres:17', 'ngnix:1.27.4',
         'ghcr.io/in-toto/archivista:0.9.0')
 
     Returns:
-        dict: Dictionary with components including normalized URL
+        str: normalized URL
     """
-    # Split url by '/' to extract server and path components
-    parts = url.split("/")
-
-    # Check if the URL includes a server (contains dots or specified registry)
-    has_server = (
-        "." in parts[0]
-        or ":" in parts[0]
-        and parts[0].split(":")[0] == "registry"
-    )
-
-    if has_server:
-        # URL already has a server specified
+    # Default values
+    server = "registry-1.docker.io"
+    path = ""
+    tag = "latest"
+    
+    # Handle tag separation first
+    if ':' in url:
+        image_part, tag = url.rsplit(':', 1)
+    else:
+        image_part = url
+    
+    # Check if there's a server (contains a dot or starts with a known registry)
+    parts = image_part.split('/')
+    
+    # Determine if first part is a server
+    if '.' in parts[0] or parts[0].startswith('registry'):
         server = parts[0]
-        parts = parts[1:] if len(parts) > 1 else []
+        parts = parts[1:]
+    
+    # Handle path and image
+    if len(parts) > 1:
+        path = '/'.join(parts[:-1])
+        image = parts[-1]
     else:
-        # Default to Docker Hub
-        server = "registry-1.docker.io"
-
-    # Handle image name and tag
-    if parts:
-        # The last part might contain the image:tag
-        image_tag_part = parts[-1]
-    else:
-        # If there are no parts left, the image:tag is in the server variable
-        image_tag_part = server
-        # Reset server to Docker Hub since we now know it's not a server
-        if not has_server:
-            server = "registry-1.docker.io"
-
-    # Split to get image and tag
-    if ":" in image_tag_part:
-        image, tag = image_tag_part.split(":", 1)
-    else:
-        image = image_tag_part
-        tag = "latest"  # Default tag if not specified
-
-    # Reconstruct remaining path (excluding the last part that contains
-    # image:tag)
-    path = "/".join(parts[:-1]) if len(parts) > 1 else ""
-
-    # For Docker Hub, add 'library/' prefix if no project/organization
-    if server == "registry-1.docker.io" and "/" not in url:
-        path = "library"
-
-    # Build the normalized URL
+        image = parts[0]
+        # For Docker Hub, use 'library' if no custom path
+        path = "library" if server == "registry-1.docker.io" else ""
+    
+    # Build normalized URL
     if path:
         normalized_url = f"{server}/{path}/{image}:{tag}"
     else:
