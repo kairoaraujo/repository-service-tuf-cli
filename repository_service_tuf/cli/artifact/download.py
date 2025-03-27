@@ -30,6 +30,18 @@ def _build_metadata_dir(metadata_url: str) -> str:
     return f"{Path.home()}/.local/share/rstuf/{name}"
 
 
+def _init_trusted_root(metadata_url: str, root: str) -> None:
+    """Initialize trusted metadata and create a directory for downloads"""
+    metadata_dir = _build_metadata_dir(metadata_url)
+
+    os.makedirs(metadata_dir, exist_ok=True)
+
+    with open(f"{metadata_dir}/root.json", "w") as f:
+        f.write(root)
+
+    console.print(f"Initialized new root in {metadata_dir}")
+
+
 def _init_tofu(metadata_url: str, root: Optional[str]) -> None:
     """Initialize local trusted metadata (Trust-On-First-Use) and create a
     directory for downloads"""
@@ -79,10 +91,13 @@ def _perform_tuf_ngclient_download_artifact(
         updater.refresh()
 
         # Annotating, as it's an external method we don't want to test
+
         info = updater.get_targetinfo(artifact_name)  # pragma: no cover
 
         if info is None:  # pragma: no cover
-            raise FileNotFoundError(f"Artifact {artifact_name} not found")
+            raise click.ClickException(
+                f"Artifact {artifact_name} not trusted by TUF repository"
+            )
 
         path = updater.find_cached_target(info)  # pragma: no cover
         if path:  # pragma: no cover
@@ -109,18 +124,17 @@ def _download_artifact(
 ) -> None:
     if metadata_url is None:
         raise click.ClickException("Please specify metadata url")
+
     metadata_dir = _build_metadata_dir(metadata_url)
 
     if artifacts_url is None:
         raise click.ClickException("Please specify artifacts url")
 
-    if not os.path.isfile(f"{metadata_dir}/root.json"):
-        console.print(
-            "Trusted local root not found. Using 'tofu' to "
-            "Trust-On-First-Use or copy trusted root metadata to "
-            f"{metadata_dir}/root.json"
-        )
+    if root.startswith("http") or root.startswith("https"):
         _init_tofu(metadata_url, root)
+
+    else:
+        _init_trusted_root(metadata_url, root)
 
     console.print(f"Using trusted root in {metadata_dir}")
 
@@ -245,7 +259,6 @@ def download(
                     "or use the download commang without a config file"
                 )
             root = _decode_trusted_root(root)  # pragma: no cover
-            console.print(f"Decoded trusted root {root}")
 
     _download_artifact(
         metadata_url,
