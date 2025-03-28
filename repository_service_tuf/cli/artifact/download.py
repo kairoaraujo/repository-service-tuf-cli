@@ -41,6 +41,7 @@ def _build_metadata_dir(metadata_url: str) -> str:
     name = sha256(metadata_url.encode()).hexdigest()[:8]
     return f"{Path.home()}/.local/share/rstuf/{name}"
 
+
 def _init_trusted_root(metadata_url: str, root: str) -> None:
     """Initialize trusted metadata and create a directory for downloads"""
     metadata_dir = _build_metadata_dir(metadata_url)
@@ -51,6 +52,7 @@ def _init_trusted_root(metadata_url: str, root: str) -> None:
         f.write(root)
 
     console.print(f"Initialized new root in {metadata_dir}")
+
 
 def _init_tofu(metadata_url: str, root: Optional[str]) -> None:
     """Initialize local trusted metadata (Trust-On-First-Use) and create a
@@ -122,7 +124,7 @@ def _perform_tuf_ngclient_download_artifact(
             )
 
         path = updater.download_target(info)  # pragma: no cover
-        if not fetcher.oci_registry:
+        if not isinstance(fetcher, RSTUFFetcher):
             console.print(  # pragma: no cover
                 f"Artifact downloaded and available in {path}"
             )
@@ -148,7 +150,7 @@ def _download_artifact(
 ) -> None:
     if metadata_url is None:
         raise click.ClickException("Please specify metadata url")
-    
+
     metadata_dir = _build_metadata_dir(metadata_url)
 
     if artifacts_url is None:
