@@ -49,30 +49,30 @@ def _parse_container_url(url):
     server = "registry-1.docker.io"
     path = ""
     tag = "latest"
-    
+
     # Handle tag separation first
-    if ':' in url:
-        image_part, tag = url.rsplit(':', 1)
+    if ":" in url:
+        image_part, tag = url.rsplit(":", 1)
     else:
         image_part = url
-    
+
     # Check if there's a server (contains a dot or starts with a known registry)
-    parts = image_part.split('/')
-    
+    parts = image_part.split("/")
+
     # Determine if first part is a server
-    if '.' in parts[0] or parts[0].startswith('registry'):
+    if "." in parts[0] or parts[0].startswith("registry"):
         server = parts[0]
         parts = parts[1:]
-    
+
     # Handle path and image
     if len(parts) > 1:
-        path = '/'.join(parts[:-1])
+        path = "/".join(parts[:-1])
         image = parts[-1]
     else:
         image = parts[0]
         # For Docker Hub, use 'library' if no custom path
         path = "library" if server == "registry-1.docker.io" else ""
-    
+
     # Build normalized URL
     if path:
         normalized_url = f"{server}/{path}/{image}:{tag}"
@@ -108,6 +108,13 @@ def _get_uri_for_digest(uri: str, digest: str) -> str:
     """Given a URI for an image, return a URI for the related digest."""
     base_uri = re.split(r"[@:]", uri, maxsplit=1)[0]
     return f"{base_uri}@{digest}"
+
+
+def _sanitize_dockerhub_path(image_ref: str, path: str) -> str:
+    """Sanitize the path to remove any leading slashes."""
+    # if image_ref.startswith("registry-1.docker.io"):
+    #     return path.replace("library/", "")
+    return path
 
 
 def add_container_oci(context: Context, image_ref: str):
@@ -149,13 +156,17 @@ def add_container_oci(context: Context, image_ref: str):
         raw_data["mediaType"] == "application/vnd.oci.image.index.v1+json"
     ):  # Index
         # Add the index artifact
-        index_path = f"{rstuf_path_base}:{tag_or_digest}"
+        index_path = _sanitize_dockerhub_path(
+            image_ref, f"{rstuf_path_base}:{tag_or_digest}"
+        )
         payload = _add_to_rstuf(index_path, size, digest, payload)
 
         # Process each manifest in the index
         for manifest in raw_data.get("manifests", []):
             digest = manifest["digest"]
-            manifest_path = f"{rstuf_path_base}@{digest}"
+            manifest_path = _sanitize_dockerhub_path(
+                image_ref, f"{rstuf_path_base}@{digest}"
+            )
             # Fetch the individual manifest to get its size and hash
             manifest_data = client.get_manifest(
                 container=_get_uri_for_digest(image_ref, digest)
@@ -167,7 +178,9 @@ def add_container_oci(context: Context, image_ref: str):
 
     else:  # Single manifest
         # Add artifact with tag
-        tag_path = f"{rstuf_path_base}:{tag_or_digest}"
+        tag_path = _sanitize_dockerhub_path(
+            image_ref, f"{rstuf_path_base}:{tag_or_digest}"
+        )
         payload = _add_to_rstuf(tag_path, size, digest, payload)
 
         # Add artifact with digest
