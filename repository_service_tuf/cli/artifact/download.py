@@ -127,7 +127,7 @@ def _perform_tuf_ngclient_download_artifact(
             )
 
         path = updater.download_target(info)  # pragma: no cover
-        if not fetcher.oci_registry:
+        if not isinstance(fetcher, RSTUFFetcher):
             console.print(  # pragma: no cover
                 f"Artifact downloaded and available in {path}"
             )
