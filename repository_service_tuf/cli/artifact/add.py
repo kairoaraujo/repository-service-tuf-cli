@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import os
 from typing import Optional
 
 from click import Context
@@ -16,17 +17,23 @@ from repository_service_tuf.helpers.api_client import URL, send_payload
 from repository_service_tuf.helpers.cli import (
     create_artifact_add_payload_from_filepath,
 )
+from repository_service_tuf.helpers.oras_registry import (
+    RSTUFRegistry,
+    add_container_oci,
+)
 
 
 @artifact.command()
 @click.argument(
-    "filepath",
-    type=click.Path(exists=True),
-    # Currently, this is required. If we support adding artifacts without
-    # giving the filepath then we need to set it to `False` and implement our
-    # own validation to check whether the argument is needed based on the
-    # passed user options.
+    "artifact",
     required=True,
+)
+@click.option(
+    "--oci-image",
+    help="Force it as OCI image and not try to check if it is local artifact.",
+    is_flag=True,
+    required=False,
+    default=False,
 )
 @click.option(
     "-p",
@@ -50,7 +57,8 @@ from repository_service_tuf.helpers.cli import (
 @click.pass_context
 def add(
     context: Context,
-    filepath: str,
+    artifact: str,
+    oci_image: bool,
     path: Optional[str],
     api_server: Optional[str],
     headers: Optional[str],
@@ -77,9 +85,13 @@ def add(
             "Example: --api-server https://api.rstuf.example.com"
         )
 
-    payload = create_artifact_add_payload_from_filepath(
-        filepath=filepath, path=path
-    )
+    if not oci_image and os.path.isfile(artifact):
+        payload = create_artifact_add_payload_from_filepath(
+            filepath=artifact, path=path
+        )
+    else:
+        context.oci_cli = RSTUFRegistry()
+        payload = add_container_oci(context, artifact)
 
     task_id = send_payload(
         settings=settings,

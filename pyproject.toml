@@ -43,6 +43,7 @@ dependencies = [
   "azure-keyvault-keys",
   "pykcs11",
   "asn1crypto",
+  "oras",
 ]
 dynamic = ["version"]
 

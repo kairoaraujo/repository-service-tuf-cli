@@ -11,12 +11,24 @@ from typing import Optional
 from urllib import request
 from urllib.parse import urlparse
 
+import requests
 from click import Context
 from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.ngclient import Updater, UpdaterConfig
 
 from repository_service_tuf.cli import click, console
 from repository_service_tuf.cli.artifact import artifact
+from repository_service_tuf.helpers.oras_registry import RSTUFRegistry
+from repository_service_tuf.helpers.tuf_fetcher import RSTUFFetcher
+
+
+def _is_oci_registry(artifacts_url: str) -> bool:
+    url_parsed = urlparse(artifacts_url)
+    result = requests.get(f"{url_parsed.scheme}://{url_parsed.netloc}/v2")
+    if result.headers.get("docker-distribution-api-version"):
+        return True
+
+    return False
 
 
 def _decode_trusted_root(root) -> str:
@@ -80,11 +92,19 @@ def _perform_tuf_ngclient_download_artifact(
     config: UpdaterConfig,
 ) -> None:
     try:
+        if _is_oci_registry(artifacts_url):
+            fetcher = RSTUFFetcher(RSTUFRegistry())
+            registry_url = urlparse(artifacts_url)
+            artifacts_url = f"{registry_url.netloc}{registry_url.path}"
+        else:
+            fetcher = None
+
         updater = Updater(
             metadata_dir=metadata_dir,
             metadata_base_url=metadata_url,
             target_base_url=artifacts_url,
             target_dir=download_dir,
+            fetcher=fetcher,
             config=config,
         )
         updater.refresh()
@@ -100,12 +120,21 @@ def _perform_tuf_ngclient_download_artifact(
 
         path = updater.find_cached_target(info)  # pragma: no cover
         if path:  # pragma: no cover
-            console.print(f"Artifact is available in {path}")
+            console.print(
+                f"{'Artifact' if not isinstance(fetcher, RSTUFFetcher) else 'Container index/manifest'} "  # noqa: E501
+                f"is available in {download_dir}"
+            )
 
         path = updater.download_target(info)  # pragma: no cover
-        console.print(  # pragma: no cover
-            f"Artifact downloaded and available in {path}"
-        )
+        if not isinstance(fetcher, RSTUFFetcher):
+            console.print(  # pragma: no cover
+                f"Artifact downloaded and available in {path}"
+            )
+            console.print(
+                f"Successfully completed artifact download: {artifact_name}"
+            )
+        else:
+            console.print(f"Container Image '{artifact_name}' is trusted ✅")
 
     except (OSError, RepositoryError, DownloadError) as e:
         raise click.FileError(
@@ -269,5 +298,3 @@ def download(
         artifact_name,
         root,
     )
-
-    console.print(f"Successfully completed artifact download: {artifact_name}")

@@ -237,6 +237,11 @@ def add(
     else:
         encoded_root = _load_root_from_url(root)
 
+    if urlparse(artifacts_url).scheme == "":
+        raise click.ClickException(
+            "Please use http:// or https:// for artifact url"
+        )
+
     repo_data = {
         "artifact_base_url": artifacts_url,
         "metadata_url": metadata_url,
